@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cetrogar 3 SKU Block</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      padding: 16px;
+    }
+
+    label {
+      display: block;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+    }
+
+    .hint {
+      font-size: 12px;
+      opacity: .7;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <h3>Product Tile Content Block</h3>
+
+  <label>SKU 1</label>
+  <input id="sku1" placeholder="Ej: 12345" />
+
+  <label>SKU 2</label>
+  <input id="sku2" placeholder="Ej: 67890" />
+
+  <label>SKU 3</label>
+  <input id="sku3" placeholder="Ej: ABCDE" />
+
+  <label>SKU 4</label>
+  <input id="sku4" placeholder="Ej: FGHIJ" />
+
+  <label>SKU 5</label>
+  <input id="sku5" placeholder="Ej: KLMNO" />
+
+  <label>SKU 6</label>
+  <input id="sku6" placeholder="Ej: PQRST" />
+
+  <p class="hint">El bloque guarda estado y genera AMPscript para tu email.</p>
+
+  <script src="https://unpkg.com/blocksdk/blocksdk.js"></script>
+  <script>
+    const sdk = new window.sfdc.BlockSDK();
+
+    // Prefill desde el estado del bloque
+    sdk.getData((data = {}) => {
+      const { sku1 = '', sku2 = '', sku3 = ''} = data;
+      document.getElementById('sku1').value = sku1;
+      document.getElementById('sku2').value = sku2;
+      document.getElementById('sku3').value = sku3;
+      
+      updateContent();
+    });
+
+    // Actualiza estado + contenido al tipear
+    ['sku1', 'sku2', 'sku3'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateContent);
+    });
+
+    function esc(str) {
+      // Se escapan comillas para AMPscript
+      return String(str || '').replace(/"/g, '\\"');
+    }
+
+    function updateContent() {
+      const sku1 = document.getElementById('sku1').value.trim();
+      const sku2 = document.getElementById('sku2').value.trim();
+      const sku3 = document.getElementById('sku3').value.trim();
+
+      const data = { sku1, sku2, sku3 };
+
+      sdk.setData(data, () => {
+        const ampscript = `
+%%[
+  VAR @sku1, @sku2, @sku3, @sku4, @sku5, @sku6
+  SET @sku1 = "${esc(sku1)}"
+  SET @sku2 = "${esc(sku2)}"
+  SET @sku3 = "${esc(sku3)}"
+
+  SET @catalogDE = "Catalogo"
+
+  SET @rows1 = LookupRows(@catalogDE, "ProductCode", @sku1)
+  SET @rows2 = LookupRows(@catalogDE, "ProductCode", @sku2)
+  SET @rows3 = LookupRows(@catalogDE, "ProductCode", @sku3)
+
+  IF RowCount(@rows1) > 0 THEN
+  SET @row1 = Row(@rows1, 1)
+  SET @name1 = Field(@row1, "ProductName")
+  SET @img1  = Field(@row1, "Imagen")
+  SET @price1= Field(@row1, "RegularPrice")
+  SET @sale1 = Field(@row1, "SalePrice")
+  SET @url1  = Field(@row1, "ProductLink")
+  ENDIF
+  
+  IF RowCount(@rows2) > 0 THEN
+    SET @row2 = Row(@rows2, 1)
+    SET @name2 = Field(@row2, "ProductName")
+    SET @img2 = Field(@row2, "Imagen")
+    SET @price2 = Field(@row2, "RegularPrice")
+    SET @sale2 = Field(@row2, "SalePrice")
+    SET @url2 = Field(@row2, "ProductLink")
+  ENDIF
+
+  IF RowCount(@rows3) > 0 THEN
+    SET @row3 = Row(@rows3, 1)
+    SET @name3 = Field(@row3, "ProductName")
+    SET @img3 = Field(@row3, "Imagen")
+    SET @price3 = Field(@row3, "RegularPrice")
+    SET @sale3 = Field(@row3, "SalePrice")
+    SET @url3 = Field(@row3, "ProductLink")
+  ENDIF
+]%%
+`.trim();
+
+        // Gardado de contenido en el Asset.
+        sdk.setContent(ampscript);
+
+        // SuperContent solo para el preview en el editor (no se publica)
+        const preview = `
+<div style="text-align:center; margin:20px 0;">
+  <div style="
+    display:inline-block;
+    background:#0070d2;
+    color:#fff;
+    font:16px/1.4 system-ui, sans-serif;
+    font-weight:600;
+    padding:15px 25px;
+    border-radius:6px;
+    cursor:default;
+    box-shadow:0 2px 4px rgba(0,0,0,0.2);
+  ">
+    Seleccione aquí los SKUs de los productos
+  </div>
+  <div style="margin-top:10px; font-size:12px; color:#777;">
+    ⚠️ Este bloque es solo para configuración.<br>
+    No se mostrará en el email final.
+  </div>
+</div>`;
+        sdk.setSuperContent(preview);
+      });
+    }
+  </script>
+</body>
+
+</html>
