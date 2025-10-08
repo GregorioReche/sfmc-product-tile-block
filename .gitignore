@@ -1,0 +1,23 @@
+# Node / Build files
+node_modules/
+build/
+dist/
+
+# Environment / Config
+.env
+.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Mac system files
+.DS_Store
+
+# IDE settings
+.vscode/
+.idea/
+
+# Local test or example content
+examples/
