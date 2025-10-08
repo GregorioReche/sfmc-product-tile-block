@@ -16,15 +16,42 @@
         <!-- SECCIÓN: CATALOGO -->
             <div class="slds-section slds-is-open">
                 <h3 class="slds-section__title slds-theme_shade">
-                <span class="slds-truncate slds-p-horizontal_small" title="Data Source">Catalog Data Extension</span>
+                    <span class="slds-truncate slds-p-horizontal_small" title="Catalog Fields">
+                        Catalog Data Extension and Field Mapping
+                    </span>
                 </h3>
                 <div class="slds-section__content slds-p-horizontal_small">
-                    <label class="slds-form-element__label slds-no-flex" for="catalog-data-extension">Nombre de la Data Extension del catálogo</label>
-                    <div class="slds-form-element__control slds-grow">
-                        <input class="slds-input" id="catalog-data-extension" placeholder="Catalogo" type="text">
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label" for="catalog-data-extension">Nombre de la Data Extension del Catalogo</label>
+                        <input class="slds-input" id="catalog-data-extension" placeholder="Nombre de la Data Extension" type="text">
+                    </div>
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label" for="field-sku">Campo SKU</label>
+                        <input class="slds-input" id="field-sku" placeholder="ProductCode" type="text">
+                    </div>
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label" for="field-name">Campo Nombre</label>
+                        <input class="slds-input" id="field-name" placeholder="ProductName" type="text">
+                    </div>
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label" for="field-image">Campo Imagen</label>
+                        <input class="slds-input" id="field-image" placeholder="Imagen" type="text">
+                    </div>
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label" for="field-regularprice">Campo Precio Regular</label>
+                        <input class="slds-input" id="field-regularprice" placeholder="RegularPrice" type="text">
+                    </div>
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label" for="field-saleprice">Campo Precio Oferta</label>
+                        <input class="slds-input" id="field-saleprice" placeholder="SalePrice" type="text">
+                    </div>
+                    <div class="slds-form-element">
+                        <label class="slds-form-element__label" for="field-url">Campo URL Producto</label>
+                        <input class="slds-input" id="field-url" placeholder="ProductLink" type="text">
                     </div>
                 </div>
-            </div>   
+            </div>
+
         <!-- SECCIÓN: SKUs -->
             <div class="slds-section slds-is-open">
                 <h3 class="slds-section__title slds-theme_shade">
@@ -102,17 +129,41 @@
 
     // Prefill desde el estado del bloque
     sdk.getData((data = {}) => {
-      const { sku1 = '', sku2 = '', sku3 = '', catalogDataExtension = ''} = data;
-      document.getElementById('sku1').value = sku1;
-      document.getElementById('sku2').value = sku2;
-      document.getElementById('sku3').value = sku3;
-      document.getElementById('catalog-data-extension').value = catalogDataExtension;
-      document.querySelector(`input[name="desktopCols"][value="${desktopCols}"]`).checked = true;
-      updateContent();
+    const {
+        sku1 = '',
+        sku2 = '',
+        sku3 = '',
+        catalogDataExtension = '',
+        desktopCols = '3',
+        catalogFields = {}
+    } = data;
+
+    // Prefill de campos principales
+    document.getElementById('sku1').value = sku1;
+    document.getElementById('sku2').value = sku2;
+    document.getElementById('sku3').value = sku3;
+    document.getElementById('catalog-data-extension').value = catalogDataExtension;
+
+    // Prefill de layout
+    const radio = document.querySelector(`input[name="desktopCols"][value="${desktopCols}"]`);
+    if (radio) radio.checked = true;
+
+    // Prefill de mapeo de campos del catálogo
+    document.getElementById('field-sku').value = catalogFields.sku || '';
+    document.getElementById('field-name').value = catalogFields.name || '';
+    document.getElementById('field-image').value = catalogFields.image || '';
+    document.getElementById('field-regularprice').value = catalogFields.regularPrice || '';
+    document.getElementById('field-saleprice').value = catalogFields.salePrice || '';
+    document.getElementById('field-url').value = catalogFields.url || '';
+
+    // Genera el contenido inicial
+    updateContent();
     });
 
+
     // Actualiza estado + contenido al tipear
-    ['sku1', 'sku2', 'sku3','catalogDataExtension'].forEach(id => {
+    ['sku1', 'sku2', 'sku3','catalogDataExtension','field-sku', 'field-name', 'field-image',
+  'field-regularprice', 'field-saleprice', 'field-url'].forEach(id => {
       document.getElementById(id).addEventListener('input', updateContent);
     });
     document.querySelectorAll('input[name="desktopCols"]').forEach(el => {
@@ -130,8 +181,16 @@
       const sku3 = document.getElementById('sku3').value.trim();
       const catalogDataExtension = document.getElementById('catalog-data-extension').value.trim();
       const cols = document.querySelector('input[name="desktopCols"]:checked')?.value || '3';
-        
-      const data = { sku1, sku2, sku3, catalogDataExtension, desktopCols: cols };
+      const catalogFields = {
+        sku: document.getElementById('field-sku').value.trim(),
+        name: document.getElementById('field-name').value.trim(),
+        image: document.getElementById('field-image').value.trim(),
+        regularPrice: document.getElementById('field-regularprice').value.trim(),
+        salePrice: document.getElementById('field-saleprice').value.trim(),
+        url: document.getElementById('field-url').value.trim(),
+      };
+
+      const data = { sku1, sku2, sku3, catalogDataExtension, catalogFields, desktopCols: cols };
 
       sdk.setData(data, () => {
         const ampscript = `
@@ -142,35 +201,42 @@
   SET @sku3 = "${esc(sku3)}"
   SET @catalogDE = "${esc(catalogDataExtension)}"
 
-  SET @rows1 = LookupRows(@catalogDE, "SKU", @sku1)
-  SET @rows2 = LookupRows(@catalogDE, "SKU", @sku2)
-  SET @rows3 = LookupRows(@catalogDE, "SKU", @sku3)
+  SET @skuField   = "${esc(catalogFields.sku)}"
+  SET @nameField  = "${esc(catalogFields.name)}"
+  SET @imageField = "${esc(catalogFields.image)}"
+  SET @priceField = "${esc(catalogFields.regularPrice)}"
+  SET @saleField  = "${esc(catalogFields.salePrice)}"
+  SET @urlField   = "${esc(catalogFields.url)}"
+
+  SET @rows1 = LookupRows(@catalogDE, @skuField, @sku1)
+  SET @rows2 = LookupRows(@catalogDE, @skuField, @sku2)
+  SET @rows3 = LookupRows(@catalogDE, @skuField, @sku3)
 
   IF RowCount(@rows1) > 0 THEN
   SET @row1 = Row(@rows1, 1)
-  SET @name1 = Field(@row1, "Product_Name")
-  SET @img1  = Field(@row1, "ImageLink")
-  SET @price1= Field(@row1, "Retail_Price")
-  SET @sale1 = Field(@row1, "Sale_Price")
-  SET @url1  = Field(@row1, "Product_URL")
+  SET @name1 = Field(@row1, @nameField)
+  SET @img1  = Field(@row1, @imageField)
+  SET @price1= Field(@row1, @priceField)
+  SET @sale1 = Field(@row1, @saleField)
+  SET @url1  = Field(@row1, @urlField)
   ENDIF
 
   IF RowCount(@rows2) > 0 THEN
   SET @row2 = Row(@rows2, 1)
-  SET @name2 = Field(@row2, "Product_Name")
-  SET @img2  = Field(@row2, "ImageLink")
-  SET @price2= Field(@row2, "Retail_Price")
-  SET @sale2 = Field(@row2, "Sale_Price")
-  SET @url2  = Field(@row2, "Product_URL")
+  SET @name2 = Field(@row2, @nameField)
+  SET @img2  = Field(@row2, @imageField)
+  SET @price2= Field(@row2, @priceField)
+  SET @sale2 = Field(@row2, @saleField)
+  SET @url2  = Field(@row2, @urlField)
   ENDIF
 
   IF RowCount(@rows3) > 0 THEN
   SET @row3 = Row(@rows3, 1)
-  SET @name3 = Field(@row3, "Product_Name")
-  SET @img3  = Field(@row3, "ImageLink")
-  SET @price3= Field(@row3, "Retail_Price")
-  SET @sale3 = Field(@row3, "Sale_Price")
-  SET @url3  = Field(@row3, "Product_URL")
+  SET @name3 = Field(@row3, @nameField)
+  SET @img3  = Field(@row3, @imageField)
+  SET @price3= Field(@row3, @priceField)
+  SET @sale3 = Field(@row3, @saleField)
+  SET @url3  = Field(@row3, @urlField)
   ENDIF
   
   
@@ -201,7 +267,7 @@
                                                                 role="presentation">
                                                                 <tr>
                                                                     <td align="center"><img
-                                                                            src=" %%=RedirectTo(@img1)=%%"
+                                                                            src="%%=RedirectTo(@img1)=%%"
                                                                             alt="%%=v(@name1)=%%" width="180"
                                                                             style="display: block; height: auto; width: 100%; text-align: center; padding: 0px;">
                                                                     </td>
@@ -413,7 +479,7 @@
       </div>`;
       sdk.setSuperContent(preview);
     });
-    }
+    
   </script>
 </body>
 
