@@ -163,7 +163,7 @@
 
     // Actualiza estado + contenido al tipear
     ['sku1', 'sku2', 'sku3','catalogDataExtension','field-sku', 'field-name', 'field-image',
-  'field-regularprice', 'field-saleprice', 'field-url'].forEach(id => {
+    'field-regularprice', 'field-saleprice', 'field-url'].forEach(id => {
       document.getElementById(id).addEventListener('input', updateContent);
     });
     document.querySelectorAll('input[name="desktopCols"]').forEach(el => {
@@ -193,122 +193,163 @@
       const data = { sku1, sku2, sku3, catalogDataExtension, catalogFields, desktopCols: cols };
 
       sdk.setData(data, () => {
-        const ampscript = `
-%%[
-  VAR @sku1, @sku2, @sku3, @sku4, @sku5, @sku6
-  SET @sku1 = "${esc(sku1)}"
-  SET @sku2 = "${esc(sku2)}"
-  SET @sku3 = "${esc(sku3)}"
-  SET @catalogDE = "${esc(catalogDataExtension)}"
+        let ampscript = '';
+        let preview = '';
 
-  SET @skuField   = "${esc(catalogFields.sku)}"
-  SET @nameField  = "${esc(catalogFields.name)}"
-  SET @imageField = "${esc(catalogFields.image)}"
-  SET @priceField = "${esc(catalogFields.regularPrice)}"
-  SET @saleField  = "${esc(catalogFields.salePrice)}"
-  SET @urlField   = "${esc(catalogFields.url)}"
+        if (!catalogDataExtension) {
+        // --- MODO TESTING ---
+            preview = `
+                <div style="display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin:20px 0;">
+                    ${[1, 2, 3].map(i => `
+                    <div style="width:${cols === '1' ? '100%' : cols === '2' ? '48%' : '31%'}; text-align:center; border:1px solid #ddd; border-radius:8px; padding:10px;">
+                        <img src="/static/images/preview${i}.jpg" alt="Testing ${i}" style="width:100%; border-radius:6px;">
+                        <div style="font-weight:600; margin-top:6px;">Testing ${i}</div>
+                        <div style="color:#999; text-decoration:line-through;">$${(i * 4999).toLocaleString('es-AR')}</div>
+                        <div style="color:#333; font-weight:600;">$${(i * 3999).toLocaleString('es-AR')}</div>
+                        <a href="https://example.com/testing${i}" target="_blank" style="display:inline-block; background:#5D5D5D; color:#fff; text-decoration:none; padding:8px 16px; margin-top:10px; border-radius:4px;">Comprar</a>
+                    </div>
+                    `).join('')}
+                </div>`;
 
-  SET @rows1 = LookupRows(@catalogDE, @skuField, @sku1)
-  SET @rows2 = LookupRows(@catalogDE, @skuField, @sku2)
-  SET @rows3 = LookupRows(@catalogDE, @skuField, @sku3)
+            ampscript = `
+                <!-- TESTING PREVIEW - sin Data Extension -->
+                <center>
+                <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                    <tr>
+                    ${[1, 2, 3].map(i => `
+                    <td style="width:33%; padding:10px;" align="center">
+                        <img src="/static/images/preview${i}.jpg" alt="Testing ${i}" width="180" style="border-radius:6px;">
+                        <div style="font-weight:600; margin-top:8px;">Testing ${i}</div>
+                        <div style="color:#999; text-decoration:line-through;">$${(i * 4999).toLocaleString('es-AR')}</div>
+                        <div style="color:#333; font-weight:600;">$${(i * 3999).toLocaleString('es-AR')}</div>
+                        <a href="https://example.com/testing${i}" target="_blank" style="display:inline-block; background:#5D5D5D; color:#fff; text-decoration:none; padding:8px 16px; margin-top:10px; border-radius:4px;">Comprar</a>
+                    </td>
+                    `).join('')}
+                    </tr>
+                </table>
+                </center>`;
+            } else {
+        // --- MODO REAL CON DATA EXTENSION ---
 
-  IF RowCount(@rows1) > 0 THEN
-  SET @row1 = Row(@rows1, 1)
-  SET @name1 = Field(@row1, @nameField)
-  SET @img1  = Field(@row1, @imageField)
-  SET @price1= Field(@row1, @priceField)
-  SET @sale1 = Field(@row1, @saleField)
-  SET @url1  = Field(@row1, @urlField)
-  ENDIF
+        ampscript = `
+            %%[
+            VAR @sku1, @sku2, @sku3, @sku4, @sku5, @sku6
+            SET @sku1 = "${esc(sku1)}"
+            SET @sku2 = "${esc(sku2)}"
+            SET @sku3 = "${esc(sku3)}"
+            SET @catalogDE = "${esc(catalogDataExtension)}"
 
-  IF RowCount(@rows2) > 0 THEN
-  SET @row2 = Row(@rows2, 1)
-  SET @name2 = Field(@row2, @nameField)
-  SET @img2  = Field(@row2, @imageField)
-  SET @price2= Field(@row2, @priceField)
-  SET @sale2 = Field(@row2, @saleField)
-  SET @url2  = Field(@row2, @urlField)
-  ENDIF
+            SET @skuField   = "${esc(catalogFields.sku)}"
+            SET @nameField  = "${esc(catalogFields.name)}"
+            SET @imageField = "${esc(catalogFields.image)}"
+            SET @priceField = "${esc(catalogFields.regularPrice)}"
+            SET @saleField  = "${esc(catalogFields.salePrice)}"
+            SET @urlField   = "${esc(catalogFields.url)}"
 
-  IF RowCount(@rows3) > 0 THEN
-  SET @row3 = Row(@rows3, 1)
-  SET @name3 = Field(@row3, @nameField)
-  SET @img3  = Field(@row3, @imageField)
-  SET @price3= Field(@row3, @priceField)
-  SET @sale3 = Field(@row3, @saleField)
-  SET @url3  = Field(@row3, @urlField)
-  ENDIF
-  
-  
-]%%
-<table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-    style="border-bottom: 1px solid #AEAEAE; min-width: 100%; " class="slot-styling">
-    <tr>
-        <td style="padding-top: 10px; padding-bottom: 10px; " class="slot-styling camarker-inner">
+            SET @rows1 = LookupRows(@catalogDE, @skuField, @sku1)
+            SET @rows2 = LookupRows(@catalogDE, @skuField, @sku2)
+            SET @rows3 = LookupRows(@catalogDE, @skuField, @sku3)
+
+            IF RowCount(@rows1) > 0 THEN
+            SET @row1 = Row(@rows1, 1)
+            SET @name1 = Field(@row1, @nameField)
+            SET @img1  = Field(@row1, @imageField)
+            SET @price1= Field(@row1, @priceField)
+            SET @sale1 = Field(@row1, @saleField)
+            SET @url1  = Field(@row1, @urlField)
+            ENDIF
+
+            IF RowCount(@rows2) > 0 THEN
+            SET @row2 = Row(@rows2, 1)
+            SET @name2 = Field(@row2, @nameField)
+            SET @img2  = Field(@row2, @imageField)
+            SET @price2= Field(@row2, @priceField)
+            SET @sale2 = Field(@row2, @saleField)
+            SET @url2  = Field(@row2, @urlField)
+            ENDIF
+
+            IF RowCount(@rows3) > 0 THEN
+            SET @row3 = Row(@rows3, 1)
+            SET @name3 = Field(@row3, @nameField)
+            SET @img3  = Field(@row3, @imageField)
+            SET @price3= Field(@row3, @priceField)
+            SET @sale3 = Field(@row3, @saleField)
+            SET @url3  = Field(@row3, @urlField)
+            ENDIF
+            
+            
+            ]%%
             <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                style="text-align: left; min-width: 100%; " class="stylingblock-content-wrapper">
+                style="border-bottom: 1px solid #AEAEAE; min-width: 100%; " class="slot-styling">
                 <tr>
-                    <td style="padding-top: 10px; padding-right: 10px; padding-left: 10px; "
-                        class="stylingblock-content-wrapper camarker-inner" align="left">
-                        <table style="width: 100%;" cellpadding="0" cellspacing="0">
+                    <td style="padding-top: 10px; padding-bottom: 10px; " class="slot-styling camarker-inner">
+                        <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                            style="text-align: left; min-width: 100%; " class="stylingblock-content-wrapper">
                             <tr>
-                                <td>
+                                <td style="padding-top: 10px; padding-right: 10px; padding-left: 10px; "
+                                    class="stylingblock-content-wrapper camarker-inner" align="left">
                                     <table style="width: 100%;" cellpadding="0" cellspacing="0">
                                         <tr>
-                                    <!-- Producto 1 -->
-                                            <td class="responsive-td" style="width: 33%; padding-right: 5px;"
-                                                valign="top">
-                                                <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                                                    style="min-width: 100%; " class="stylingblock-content-wrapper">
+                                            <td>
+                                                <table style="width: 100%;" cellpadding="0" cellspacing="0">
                                                     <tr>
-                                                        <td style="padding-bottom: 10px; "
-                                                            class="stylingblock-content-wrapper camarker-inner">
-                                                            <table width="100%" cellspacing="0" cellpadding="0"
-                                                                role="presentation">
+                                                <!-- Producto 1 -->
+                                                        <td class="responsive-td" style="width: 33%; padding-right: 5px;"
+                                                            valign="top">
+                                                            <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                                                style="min-width: 100%; " class="stylingblock-content-wrapper">
                                                                 <tr>
-                                                                    <td align="center"><img
-                                                                            src="%%=RedirectTo(@img1)=%%"
-                                                                            alt="%%=v(@name1)=%%" width="180"
-                                                                            style="display: block; height: auto; width: 100%; text-align: center; padding: 0px;">
+                                                                    <td style="padding-bottom: 10px; "
+                                                                        class="stylingblock-content-wrapper camarker-inner">
+                                                                        <table width="100%" cellspacing="0" cellpadding="0"
+                                                                            role="presentation">
+                                                                            <tr>
+                                                                                <td align="center"><img
+                                                                                        src="%%=RedirectTo(@img1)=%%"
+                                                                                        alt="%%=v(@name1)=%%" width="180"
+                                                                                        style="display: block; height: auto; width: 100%; text-align: center; padding: 0px;">
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
                                                                     </td>
                                                                 </tr>
                                                             </table>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                                <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                                                    style="min-width: 100%; " class="stylingblock-content-wrapper">
-                                                    <tr>
-                                                        <td style="padding-bottom: 10px; "
-                                                            class="stylingblock-content-wrapper camarker-inner">
-                                                            <div style="text-align: center;">
-                                                                %%=v(@name1)=%%</div>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                                <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                                                    style="min-width: 100%; " class="stylingblock-content-wrapper">
-                                                    <tr>
-                                                        <td style="padding-bottom: 10px; "
-                                                            class="stylingblock-content-wrapper camarker-inner">
-                                                            <table width="100%" border="0" cellspacing="0"
-                                                                cellpadding="5" role="presentation">
+                                                            <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                                                style="min-width: 100%; " class="stylingblock-content-wrapper">
                                                                 <tr>
-                                                                    <td align="center">
-                                                                        <table border="0" cellspacing="0"
-                                                                            cellpadding="0" role="presentation">
+                                                                    <td style="padding-bottom: 10px; "
+                                                                        class="stylingblock-content-wrapper camarker-inner">
+                                                                        <div style="text-align: center;">
+                                                                            %%=v(@name1)=%%</div>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                                                style="min-width: 100%; " class="stylingblock-content-wrapper">
+                                                                <tr>
+                                                                    <td style="padding-bottom: 10px; "
+                                                                        class="stylingblock-content-wrapper camarker-inner">
+                                                                        <table width="100%" border="0" cellspacing="0"
+                                                                            cellpadding="5" role="presentation">
                                                                             <tr>
-                                                                                <td class="innertd buttonblock"
-                                                                                    align="center" bgcolor="#5D5D5D"
-                                                                                    style=" border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px; background-color: #5D5D5D;">
-                                                                                    <a target="_blank"
-                                                                                        style=" text-decoration: none; display: block; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #FFFFFF; text-align: center; background-color: #5D5D5D; border: 1px solid #5D5D5D; padding: 10px; border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px;"
-                                                                                        class="buttonstyles"
-                                                                                        href="%%=RedirectTo(@url1)=%%"
-                                                                                        title="" alias=""
-                                                                                        conversion="false"
-                                                                                        data-linkto="http://">Comprar
-                                                                                    </a>
+                                                                                <td align="center">
+                                                                                    <table border="0" cellspacing="0"
+                                                                                        cellpadding="0" role="presentation">
+                                                                                        <tr>
+                                                                                            <td class="innertd buttonblock"
+                                                                                                align="center" bgcolor="#5D5D5D"
+                                                                                                style=" border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px; background-color: #5D5D5D;">
+                                                                                                <a target="_blank"
+                                                                                                    style=" text-decoration: none; display: block; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #FFFFFF; text-align: center; background-color: #5D5D5D; border: 1px solid #5D5D5D; padding: 10px; border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px;"
+                                                                                                    class="buttonstyles"
+                                                                                                    href="%%=RedirectTo(@url1)=%%"
+                                                                                                    title="" alias=""
+                                                                                                    conversion="false"
+                                                                                                    data-linkto="http://">Comprar
+                                                                                                </a>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    </table>
                                                                                 </td>
                                                                             </tr>
                                                                         </table>
@@ -316,63 +357,63 @@
                                                                 </tr>
                                                             </table>
                                                         </td>
-                                                    </tr>
-                                                </table>
-                                            </td>
-                                        <!-- Producto 2 -->
-                                            <td class="responsive-td"
-                                                style="width: 33%; padding-right: 5px; padding-left: 5px;" valign="top">
-                                                <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                                                    style="min-width: 100%; " class="stylingblock-content-wrapper">
-                                                    <tr>
-                                                        <td style="padding-bottom: 10px; "
-                                                            class="stylingblock-content-wrapper camarker-inner">
-                                                            <table width="100%" cellspacing="0" cellpadding="0"
-                                                                role="presentation">
+                                                    <!-- Producto 2 -->
+                                                        <td class="responsive-td"
+                                                            style="width: 33%; padding-right: 5px; padding-left: 5px;" valign="top">
+                                                            <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                                                style="min-width: 100%; " class="stylingblock-content-wrapper">
                                                                 <tr>
-                                                                    <td align="center"><img
-                                                                            src="%%=RedirectTo(@img2)=%%"
-                                                                            alt="%%=v(@name2)=%%" width="180"
-                                                                            style="display: block; height: auto; width: 100%; text-align: center; padding: 0px;">
+                                                                    <td style="padding-bottom: 10px; "
+                                                                        class="stylingblock-content-wrapper camarker-inner">
+                                                                        <table width="100%" cellspacing="0" cellpadding="0"
+                                                                            role="presentation">
+                                                                            <tr>
+                                                                                <td align="center"><img
+                                                                                        src="%%=RedirectTo(@img2)=%%"
+                                                                                        alt="%%=v(@name2)=%%" width="180"
+                                                                                        style="display: block; height: auto; width: 100%; text-align: center; padding: 0px;">
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
                                                                     </td>
                                                                 </tr>
                                                             </table>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                                <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                                                    style="min-width: 100%; " class="stylingblock-content-wrapper">
-                                                    <tr>
-                                                        <td style="padding-bottom: 10px; "
-                                                            class="stylingblock-content-wrapper camarker-inner">
-                                                            <div style="text-align: center;">
-                                                                %%=v(@name2)=%%</div>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                                <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                                                    style="min-width: 100%; " class="stylingblock-content-wrapper">
-                                                    <tr>
-                                                        <td style="padding-bottom: 10px; "
-                                                            class="stylingblock-content-wrapper camarker-inner">
-                                                            <table width="100%" border="0" cellspacing="0"
-                                                                cellpadding="5" role="presentation">
+                                                            <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                                                style="min-width: 100%; " class="stylingblock-content-wrapper">
                                                                 <tr>
-                                                                    <td align="center">
-                                                                        <table border="0" cellspacing="0"
-                                                                            cellpadding="0" role="presentation">
+                                                                    <td style="padding-bottom: 10px; "
+                                                                        class="stylingblock-content-wrapper camarker-inner">
+                                                                        <div style="text-align: center;">
+                                                                            %%=v(@name2)=%%</div>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                                                style="min-width: 100%; " class="stylingblock-content-wrapper">
+                                                                <tr>
+                                                                    <td style="padding-bottom: 10px; "
+                                                                        class="stylingblock-content-wrapper camarker-inner">
+                                                                        <table width="100%" border="0" cellspacing="0"
+                                                                            cellpadding="5" role="presentation">
                                                                             <tr>
-                                                                                <td class="innertd buttonblock"
-                                                                                    align="center" bgcolor="#5D5D5D"
-                                                                                    style=" border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px; background-color: #5D5D5D;">
-                                                                                    <a target="_blank"
-                                                                                        style=" text-decoration: none; display: block; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #FFFFFF; text-align: center; background-color: #5D5D5D; border: 1px solid #5D5D5D; padding: 10px; border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px;"
-                                                                                        class="buttonstyles"
-                                                                                        href="%%=RedirectTo(@url2)=%%"
-                                                                                        title="" alias=""
-                                                                                        conversion="false"
-                                                                                        data-linkto="http://">Comprar
-                                                                                    </a>
+                                                                                <td align="center">
+                                                                                    <table border="0" cellspacing="0"
+                                                                                        cellpadding="0" role="presentation">
+                                                                                        <tr>
+                                                                                            <td class="innertd buttonblock"
+                                                                                                align="center" bgcolor="#5D5D5D"
+                                                                                                style=" border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px; background-color: #5D5D5D;">
+                                                                                                <a target="_blank"
+                                                                                                    style=" text-decoration: none; display: block; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #FFFFFF; text-align: center; background-color: #5D5D5D; border: 1px solid #5D5D5D; padding: 10px; border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px;"
+                                                                                                    class="buttonstyles"
+                                                                                                    href="%%=RedirectTo(@url2)=%%"
+                                                                                                    title="" alias=""
+                                                                                                    conversion="false"
+                                                                                                    data-linkto="http://">Comprar
+                                                                                                </a>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    </table>
                                                                                 </td>
                                                                             </tr>
                                                                         </table>
@@ -380,64 +421,64 @@
                                                                 </tr>
                                                             </table>
                                                         </td>
-                                                    </tr>
-                                                </table>
-                                            </td>
-                                        <!-- Producto 3 -->
-                                            <td class="responsive-td" style="width: 34%; padding-left: 5px;"
-                                                valign="top">
-                                                <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                                                    style="min-width: 100%; " class="stylingblock-content-wrapper">
-                                                    <tr>
-                                                        <td style="padding-bottom: 10px; "
-                                                            class="stylingblock-content-wrapper camarker-inner">
-                                                            <table width="100%" cellspacing="0" cellpadding="0"
-                                                                role="presentation">
+                                                    <!-- Producto 3 -->
+                                                        <td class="responsive-td" style="width: 34%; padding-left: 5px;"
+                                                            valign="top">
+                                                            <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                                                style="min-width: 100%; " class="stylingblock-content-wrapper">
                                                                 <tr>
-                                                                    <td align="center"><img
-                                                                            src="%%=RedirectTo(@img3)=%%"
-                                                                            alt="%%=v(@name3)=%%" width="180"
-                                                                            style="display: block; height: auto; width: 100%; text-align: center; padding: 0px;">
+                                                                    <td style="padding-bottom: 10px; "
+                                                                        class="stylingblock-content-wrapper camarker-inner">
+                                                                        <table width="100%" cellspacing="0" cellpadding="0"
+                                                                            role="presentation">
+                                                                            <tr>
+                                                                                <td align="center"><img
+                                                                                        src="%%=RedirectTo(@img3)=%%"
+                                                                                        alt="%%=v(@name3)=%%" width="180"
+                                                                                        style="display: block; height: auto; width: 100%; text-align: center; padding: 0px;">
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
                                                                     </td>
                                                                 </tr>
                                                             </table>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                                <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                                                    style="min-width: 100%; " class="stylingblock-content-wrapper">
-                                                    <tr>
-                                                        <td style="padding-bottom: 10px; "
-                                                            class="stylingblock-content-wrapper camarker-inner">
-                                                            <div style="text-align: center;">
-                                                                %%=v(@name3)=%%
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                                <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
-                                                    style="min-width: 100%; " class="stylingblock-content-wrapper">
-                                                    <tr>
-                                                        <td style="padding-bottom: 10px; "
-                                                            class="stylingblock-content-wrapper camarker-inner">
-                                                            <table width="100%" border="0" cellspacing="0"
-                                                                cellpadding="5" role="presentation">
+                                                            <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                                                style="min-width: 100%; " class="stylingblock-content-wrapper">
                                                                 <tr>
-                                                                    <td align="center">
-                                                                        <table border="0" cellspacing="0"
-                                                                            cellpadding="0" role="presentation">
+                                                                    <td style="padding-bottom: 10px; "
+                                                                        class="stylingblock-content-wrapper camarker-inner">
+                                                                        <div style="text-align: center;">
+                                                                            %%=v(@name3)=%%
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <table cellpadding="0" cellspacing="0" width="100%" role="presentation"
+                                                                style="min-width: 100%; " class="stylingblock-content-wrapper">
+                                                                <tr>
+                                                                    <td style="padding-bottom: 10px; "
+                                                                        class="stylingblock-content-wrapper camarker-inner">
+                                                                        <table width="100%" border="0" cellspacing="0"
+                                                                            cellpadding="5" role="presentation">
                                                                             <tr>
-                                                                                <td class="innertd buttonblock"
-                                                                                    align="center" bgcolor="#5D5D5D"
-                                                                                    style=" border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px; background-color: #5D5D5D;">
-                                                                                    <a target="_blank"
-                                                                                        style=" text-decoration: none; display: block; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #FFFFFF; text-align: center; background-color: #5D5D5D; border: 1px solid #5D5D5D; padding: 10px; border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px;"
-                                                                                        class="buttonstyles"
-                                                                                        href="%%=RedirectTo(@url3)=%%"
-                                                                                        title="" alias=""
-                                                                                        conversion="false"
-                                                                                        data-linkto="http://">Comprar
-                                                                                    </a>
+                                                                                <td align="center">
+                                                                                    <table border="0" cellspacing="0"
+                                                                                        cellpadding="0" role="presentation">
+                                                                                        <tr>
+                                                                                            <td class="innertd buttonblock"
+                                                                                                align="center" bgcolor="#5D5D5D"
+                                                                                                style=" border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px; background-color: #5D5D5D;">
+                                                                                                <a target="_blank"
+                                                                                                    style=" text-decoration: none; display: block; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #FFFFFF; text-align: center; background-color: #5D5D5D; border: 1px solid #5D5D5D; padding: 10px; border-radius: 3px; -moz-border-radius: 3px; -webkit-border-radius: 3px;"
+                                                                                                    class="buttonstyles"
+                                                                                                    href="%%=RedirectTo(@url3)=%%"
+                                                                                                    title="" alias=""
+                                                                                                    conversion="false"
+                                                                                                    data-linkto="http://">Comprar
+                                                                                                </a>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    </table>
                                                                                 </td>
                                                                             </tr>
                                                                         </table>
@@ -456,30 +497,25 @@
                     </td>
                 </tr>
             </table>
-        </td>
-    </tr>
-</table>
-`.trim();
+            `.trim();
 
-        // Gardado de contenido en el Asset.
+        preview = `
+            <div style="display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin:20px 0;">
+                ${[1, 2, 3].map(i => `
+                <div style="width:${cols === '1' ? '100%' : cols === '2' ? '48%' : '31%'}; text-align:center; border:1px solid #ddd; border-radius:8px; padding:10px;">
+                    <img src="/static/images/preview${i}.jpg" alt="Producto ${i}" style="width:100%; border-radius:6px;">
+                    <div style="font-weight:600; margin-top:6px;">Producto ${i}</div>
+                    <div style="color:#555;">$${(i * 4999).toLocaleString('es-AR')}</div>
+                    <a href="#" style="display:inline-block; background:#5D5D5D; color:#fff; text-decoration:none; padding:8px 16px; margin-top:10px; border-radius:4px;">Comprar</a>
+                </div>
+                `).join('')}
+            </div>`;
+  }
+
         sdk.setContent(ampscript);
-
-        // --- PREVIEW DINÁMICO ---
-        const colWidth = cols === '1' ? '100%' : cols === '2' ? '48%' : '31%';
-      const preview = `
-      <div style="display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin:20px 0;">
-        ${[1, 2, 3].map(i => `
-          <div style="width:${colWidth}; text-align:center; border:1px solid #ddd; border-radius:8px; padding:10px;">
-            <img src="/static/images/preview${i}.jpg" alt="Producto ${i}" style="width:100%; border-radius:6px;">
-            <div style="font-weight:600; margin-top:6px;">Producto ${i}</div>
-            <div style="color:#555;">$${(i * 4999).toLocaleString('es-AR')}</div>
-            <a href="#" style="display:inline-block; background:#5D5D5D; color:#fff; text-decoration:none; padding:8px 16px; margin-top:10px; border-radius:4px;">Comprar</a>
-          </div>
-        `).join('')}
-      </div>`;
-      sdk.setSuperContent(preview);
-    });
-    
+        sdk.setSuperContent(preview);
+    }); // <- cierre de sdk.setData
+}       // <- cierre de updateContent()
   </script>
 </body>
 
